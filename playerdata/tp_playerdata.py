@@ -44,13 +44,26 @@ class PlayerTeleporter():
     def __init__(self, args: typing.Dict):
         self.data_dir = args.get('data_dir', None)
         self.coordinates = (args.get('x', 0.0), args.get('y', 0.0), args.get('z', 0.0), args.get('dimension', 0), args.get('pitch', 0.0), args.get('yaw', 0.0))
-        self.whitelist = args.get('whitelist', None)
-        self.blacklist = args.get('blacklist', None) 
+        self.whitelist_file = args.get('whitelist', None)
+        self.blacklist_file = args.get('blacklist', None) 
         self.player_regex = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.dat$")
-        self.validate_input()
+        self.whitelist = self._load_whitelist()
+        self.blacklist = self._load_blacklist()
+        self._validate_input()
 
+    def _load_whitelist(self):
+        if self.whitelist_file:
+            with open(self.whitelist_file, 'r') as f:
+                return set([line.strip() for line in f])
+        return None
 
-    def validate_input(self):
+    def _load_blacklist(self):
+        if self.blacklist_file:
+            with open(self.blacklist_file, 'r') as f:
+                return set([line.strip() for line in f])
+        return None
+
+    def _validate_input(self):
         if not self.data_dir:  
             print(f"Usage: {PlayerTeleporter.usage}")
             raise ValueError("data_dir is required")
@@ -69,6 +82,7 @@ class PlayerTeleporter():
             print(f"Enter a valid blacklist file : {self.blacklist} is not a valid file")
             raise ValueError("blacklist is not a valid file")
         
+    
 
     def edit_playerdata(self):
         records_count = 0
@@ -94,7 +108,7 @@ class PlayerTeleporter():
             if self.whitelist and not player_file in self.whitelist:
                 continue
             
-            self.teleport_player(player_data)
+            self._teleport_player(player_data)
 
             #---------------------------------------------------------------------------------------------
             #For custom actions add functions here ie. heal player
@@ -109,7 +123,7 @@ class PlayerTeleporter():
 
         print(f"Edited {records_count} players")
 
-    def teleport_player(self, player_data):        
+    def _teleport_player(self, player_data):        
         # Ensure the position and rotation lists are properly formatted NBT lists
         player_data['Pos'] = List[Double]([Double(self.coordinates[0]), Double(self.coordinates[1]), Double(self.coordinates[2])])
         player_data['Dimension'] = Int(self.coordinates[3])
